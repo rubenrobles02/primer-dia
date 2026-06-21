@@ -569,7 +569,7 @@ const scenes = [
     who:N, text:'En el mirador, con la cena en mano y el pueblo iluminado debajo, empezaron a enseñarse música.' },
 
   { bg:'img:rubenypablocenando.png', label:'🎵 Mirador — Música',
-    ruben:'active', pablo:'dim',
+    ruben:'active', pablo:'dim', bgm:'TNTM',
     who:R, text:'Escucha esta. *pone canción* Esta es de mis favoritas.' },
 
   { bg:'img:rubenypablocenando.png', label:'🎵 Mirador — Música',
@@ -629,7 +629,7 @@ const scenes = [
 
   // ── Ruben volviendo a casa ───────────────────────────────────────────
   { bg:'img:ruben volviendo a  casa.png', label:'🚗 De vuelta — Noche',
-    ruben:null, pablo:null,
+    ruben:null, pablo:null, bgm:'C',
     who:N, text:'Ruben conduce de vuelta bajo la luna. La misma carretera de antes, pero algo ha cambiado.' },
 
   { bg:'img:ruben volviendo a  casa.png', label:'🚗 De vuelta',
@@ -877,7 +877,7 @@ const TRACKS = {
   },
 };
 
-const TRACK_COLORS = { A:'#a78bfa', B:'#f472b6', C:'#fb923c' };
+const TRACK_COLORS = { A:'#a78bfa', B:'#f472b6', C:'#fb923c', TNTM:'#7dd3fc' };
 
 function switchTrack(id) {
   if (currentTrackId === id) return;
@@ -902,6 +902,7 @@ function switchTrack(id) {
 
 function scheduleBGM() {
   if (!bgmActive) return;
+  if (currentTrackId === 'TNTM') { scheduleTNTM(); return; }
   initAudio();
   const tr = TRACKS[currentTrackId];
   let t = actx.currentTime + 0.15;
@@ -915,6 +916,71 @@ function scheduleBGM() {
 
   const loopMs = tr.melody.length * tr.step * 1000 + 900;
   bgmTimer = setTimeout(scheduleBGM, loopMs);
+}
+
+// ─── The Night We Met — Lord Huron (síntesis) ────────────────────────────────
+// Am · C · G · D, 6/8, ≈76 BPM
+const S8 = 60 / 76 / 2; // corchea ≈ 0.395 s
+
+// Arpegio de guitarra: 6 notas por acorde (patrón bajo-medio-alto)
+const TNTM_ARP = [
+  [220.00, 329.63, 440.00, 329.63, 440.00, 329.63], // Am
+  [261.63, 392.00, 523.25, 392.00, 523.25, 392.00], // C
+  [196.00, 293.66, 392.00, 293.66, 392.00, 293.66], // G
+  [293.66, 440.00, 587.33, 440.00, 587.33, 440.00], // D
+];
+
+// Melodía aproximada del coro ("I am not the only traveler...")
+// [freq, duración en corcheas]
+const TNTM_MEL = [
+  [440.00,2],[392.00,1],[329.63,2],[261.63,1], // Am
+  [392.00,2],[440.00,1],[523.25,2],[493.88,1], // C
+  [587.33,3],[493.88,3],                        // G
+  [369.99,2],[329.63,2],[293.66,2],             // D
+];
+
+function tntmOsc(freq, t, durSecs, vol, type) {
+  if (!bgmGain) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.connect(g); g.connect(bgmGain);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.06);
+  g.gain.exponentialRampToValueAtTime(0.001, t + durSecs);
+  o.start(t); o.stop(t + durSecs + 0.05);
+}
+
+function scheduleTNTM() {
+  if (!bgmActive || currentTrackId !== 'TNTM') return;
+  initAudio();
+  const t0 = actx.currentTime + 0.12;
+
+  // Arpegio con eco suave (simula reverb)
+  TNTM_ARP.forEach((chord, ci) => {
+    chord.forEach((freq, ni) => {
+      const t = t0 + (ci * 6 + ni) * S8;
+      tntmOsc(freq, t,          S8 * 1.7, 0.028, 'triangle');
+      tntmOsc(freq, t + S8*0.4, S8 * 2.2, 0.009, 'triangle'); // eco
+    });
+  });
+
+  // Melodía (sine — más suave y vocals)
+  let mt = t0 + S8 * 0.5;
+  TNTM_MEL.forEach(([freq, beats]) => {
+    const dur = beats * S8;
+    tntmOsc(freq,   mt, dur, 0.060, 'sine');        // fundamental
+    tntmOsc(freq*2, mt, dur, 0.012, 'sine');        // 2ª armónica (brillo)
+    tntmOsc(freq,   mt + 0.18, dur + 0.3, 0.018, 'sine'); // eco largo
+    mt += dur;
+  });
+
+  // Nota raíz de cada acorde (bajo continuo muy suave)
+  [220.00, 261.63, 196.00, 293.66].forEach((freq, i) => {
+    tntmOsc(freq, t0 + i * 6 * S8, 6 * S8, 0.018, 'sine');
+  });
+
+  const loopMs = 24 * S8 * 1000 + 400;
+  bgmTimer = setTimeout(scheduleTNTM, loopMs);
 }
 
 function startBGM() {
@@ -1048,17 +1114,7 @@ function startFx(type) {
   }
 }
 
-// ─── Estrellas (título) ───────────────────────────────────────────────────────
-(function() {
-  const c = document.getElementById('stars');
-  for (let i = 0; i < 90; i++) {
-    const s = document.createElement('div');
-    const size = Math.random() * 2.5 + 0.5;
-    s.className = 'star';
-    s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${2+Math.random()*5}s;--o:${0.3+Math.random()*0.7}`;
-    c.appendChild(s);
-  }
-})();
+// (stars eliminadas — ahora hay foto de fondo)
 
 document.addEventListener('keydown', e => {
   if (['Space','ArrowRight','Enter'].includes(e.code)) {

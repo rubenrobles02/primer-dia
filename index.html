@@ -310,7 +310,7 @@ const scenes = [
 
   { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 Carretera',
     ruben:null, pablo:null,
-    who:R, text:'¿Y si es raro en persona? ..¿Y si el raro soy yo? ..No. Va a ir bien.' },
+    who:R, text:'Como será en persona... *sonríe solo* A ver qué ocurre.' },
 
   // ── Llegada a casa de Pablo ──────────────────────────────────────────
   { bg:'img:llegando casa pablo.png', label:'🏡 Pueblo de Pablo',
@@ -323,11 +323,28 @@ const scenes = [
 
   { bg:'img:llegando casa pablo.png', label:'🏡 Casa de Pablo',
     ruben:'active', pablo:'dim',
-    who:R, text:'*lo ve por primera vez* Hostia. Es más alto de lo que me esperaba.' },
+    who:R, text:'*lo ve aparecer* Ah. Hola. *intenta no poner cara de nada*' },
 
   { bg:'img:llegando casa pablo.png', label:'🏡 Casa de Pablo',
     ruben:'dim', pablo:'active',
-    who:P, text:'¿Qué pasa, te esperabas otra cosa? *sonríe*' },
+    who:P, text:'¿Qué pasa, ya te arrepientes de haber venido? *sonríe*' },
+
+  // ── En el coche — recién recogido ────────────────────────────────────
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En el coche — Recién salidos',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Bueno... ¿qué tal el viaje? ¿Ha sido muy largo?' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En el coche',
+    ruben:'active', pablo:'dim',
+    who:R, text:'Pues sí que cambias en persona. Si ya eras guapo en foto... en persona no te quiero decir.' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En el coche',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*mira a otro lado con cara de nada* Venga ya...' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En el coche',
+    ruben:'active', pablo:'dim',
+    who:R, text:'*sonríe mirando la carretera* El viaje ha merecido la pena.' },
 
   // ── Estanco ──────────────────────────────────────────────────────────
   { bg:'linear-gradient(135deg,#4a4e69,#9a8c98)', label:'🚬 Estanco',

@@ -207,6 +207,35 @@
     }
     #game.shake { animation: gameShake 0.55s ease; }
 
+    /* ── Alerta ciclistas ───────────────────────────────────── */
+    #flash {
+      position: absolute; inset: 0; z-index: 40;
+      background: white; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #alert-bubble {
+      position: absolute; top: 38%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      z-index: 45; pointer-events: none;
+      font-size: 110px; font-weight: 900; line-height: 1;
+      color: #ef4444;
+      text-shadow:
+        5px 5px 0 #000, -4px -4px 0 #000,
+        5px -4px 0 #000, -4px 5px 0 #000,
+        0 6px 0 #000, 6px 0 0 #000;
+      letter-spacing: -4px;
+    }
+    @keyframes alertPop {
+      0%   { transform:translate(-50%,-50%) scale(0)   rotate(-8deg); opacity:0; }
+      45%  { transform:translate(-50%,-50%) scale(1.35) rotate(4deg);  opacity:1; }
+      65%  { transform:translate(-50%,-50%) scale(0.88) rotate(-2deg); opacity:1; }
+      82%  { transform:translate(-50%,-50%) scale(1.08) rotate(1deg);  opacity:1; }
+      100% { transform:translate(-50%,-50%) scale(1)    rotate(0deg);  opacity:1; }
+    }
+    @keyframes alertOut {
+      to { transform:translate(-50%,-50%) scale(1.15); opacity:0; }
+    }
+
     /* ── Track indicator (subtle) ────────────────────────────── */
     #track-dot {
       position: absolute; top: 13px; right: 52px;
@@ -239,6 +268,8 @@
   <div id="bg"></div>
   <img id="scene-img" class="gone" src="" alt="">
   <div id="particles"></div>
+  <div id="flash"></div>
+  <div id="alert-bubble"></div>
   <div id="label"></div>
 
   <img id="sprite-ruben" class="sprite gone" src="rubenanimefinal.png" alt="Ruben">
@@ -390,7 +421,7 @@ const scenes = [
 
   // ── CICLISTAS ────────────────────────────────────────────────────────
   { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ¡ALERTA!',
-    ruben:null, pablo:null, fx:'shake',
+    ruben:null, pablo:null, fx:'alert',
     who:X, text:'*ruido de bicicletas aproximándose*' },
 
   { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ×15 CICLISTAS',
@@ -427,7 +458,7 @@ const scenes = [
     who:N, text:'Silencio. El momento vuelve. Y con él... el calor también.' },
 
   { bg:'img:ciclista gritando que va al nacimiento del rio.png', label:'🔴 PELIGRO ENTRANTE',
-    ruben:null, pablo:null, fx:'shake',
+    ruben:null, pablo:null, fx:'alert',
     who:X, text:'*A lo lejos, con toda la energía del universo* — ¡¡¡AAAAAAA VOY AL NACIMIENTO DEL RÍOOOOOO!!!' },
 
   { bg:'img:ciclista gritando que va al nacimiento del rio.png', label:'🚴 CICLISTA SOLITARIO',
@@ -661,30 +692,22 @@ const VOICES = {
 
 function playVoice(freq, type) {
   if (!actx) return;
-  // Variación aleatoria estilo Animal Crossing: ±2 semitonos
-  const cents = (Math.random() - 0.5) * 400;
-  const f0 = freq * Math.pow(2, cents / 1200);
+  // Semitonos enteros aleatorios ±2 — da el pitch cuantizado típico de Animal Crossing
+  const st = Math.floor(Math.random() * 5) - 2;
+  const f0 = freq * Math.pow(2, st / 12);
 
-  const o  = actx.createOscillator();
-  const g  = actx.createGain();
-  const bp = actx.createBiquadFilter();
-
-  o.connect(bp); bp.connect(g); g.connect(actx.destination);
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.connect(g); g.connect(actx.destination); // directo — sin filtro que mate el volumen
 
   o.type = type;
   o.frequency.value = f0;
 
-  // Filtro bandpass centrado: da el timbre nasal de AC
-  bp.type = 'bandpass';
-  bp.frequency.value = f0 * 1.8;
-  bp.Q.value = 4;
-
   const t = actx.currentTime;
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.32, t + 0.008);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.052);
+  g.gain.setValueAtTime(0.42, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.048);
   o.start(t);
-  o.stop(t + 0.06);
+  o.stop(t + 0.055);
 }
 
 function typeText(fullText, who) {
@@ -724,12 +747,18 @@ function skipOrNext() {
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 let actx = null;
+let bgmGain = null;   // nodo master del BGM — se pone a 0 para silenciar notas ya programadas
 let bgmActive = false;
 let bgmTimer  = null;
 let currentTrackId = 'A';
 
 function initAudio() {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    bgmGain = actx.createGain();
+    bgmGain.gain.value = 1;
+    bgmGain.connect(actx.destination);
+  }
   if (actx.state === 'suspended') actx.resume();
 }
 
@@ -748,10 +777,11 @@ function playClick() {
 }
 
 function note(freq, t, dur, vol, oscType, filterHz) {
+  if (!bgmGain) return;
   const o = actx.createOscillator();
   const g = actx.createGain();
   const f = actx.createBiquadFilter();
-  o.connect(f); f.connect(g); g.connect(actx.destination);
+  o.connect(f); f.connect(g); g.connect(bgmGain); // ← bgmGain, no destination
   o.type = oscType || 'triangle';
   f.type = 'lowpass'; f.frequency.value = filterHz || 2200;
   o.frequency.value = freq;
@@ -804,9 +834,22 @@ const TRACK_COLORS = { A:'#a78bfa', B:'#f472b6', C:'#fb923c' };
 function switchTrack(id) {
   if (currentTrackId === id) return;
   currentTrackId = id;
-  clearTimeout(bgmTimer);
   document.getElementById('track-dot').style.background = TRACK_COLORS[id];
-  if (bgmActive) scheduleBGM();
+  if (!bgmActive || !bgmGain) return;
+
+  // Silencia TODAS las notas ya programadas en Web Audio API poniendo el gain master a 0
+  const t = actx.currentTime;
+  bgmGain.gain.cancelScheduledValues(t);
+  bgmGain.gain.setValueAtTime(bgmGain.gain.value, t);
+  bgmGain.gain.linearRampToValueAtTime(0, t + 0.4);
+
+  clearTimeout(bgmTimer);
+  // Arranca la nueva pista cuando el fade termina
+  bgmTimer = setTimeout(() => {
+    bgmGain.gain.setValueAtTime(0, actx.currentTime);
+    bgmGain.gain.linearRampToValueAtTime(1, actx.currentTime + 1.2);
+    scheduleBGM();
+  }, 500);
 }
 
 function scheduleBGM() {
@@ -836,6 +879,7 @@ function startBGM() {
 function toggleBGM() {
   bgmActive = !bgmActive;
   clearTimeout(bgmTimer);
+  if (bgmGain) bgmGain.gain.value = bgmActive ? 1 : 0;
   document.getElementById('muteBtn').textContent = bgmActive ? '🔊' : '🔇';
   if (bgmActive) scheduleBGM();
 }
@@ -849,14 +893,64 @@ function clearFx() {
   pfxInterval = null;
   particlesEl.innerHTML = '';
   document.getElementById('game').classList.remove('shake');
+  const b = document.getElementById('alert-bubble');
+  b.style.animation = 'none'; b.textContent = '';
+}
+
+function playAlertSound() {
+  if (!actx) return;
+  // Impacto tipo manga: dos golpes agudos descendentes
+  [[440, 110, 0.45, 0.18], [660, 165, 0.28, 0.14]].forEach(([from, to, dur, vol], i) => {
+    setTimeout(() => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.connect(g); g.connect(actx.destination);
+      o.type = 'square';
+      const t = actx.currentTime;
+      o.frequency.setValueAtTime(from, t);
+      o.frequency.exponentialRampToValueAtTime(to, t + dur * 0.7);
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.start(t); o.stop(t + dur + 0.05);
+    }, i * 90);
+  });
 }
 
 function startFx(type) {
+  if (type === 'alert') {
+    // Shake
+    const game = document.getElementById('game');
+    game.classList.remove('shake');
+    void game.offsetWidth;
+    game.classList.add('shake');
+    setTimeout(() => game.classList.remove('shake'), 600);
+
+    // Flash blanco
+    const flash = document.getElementById('flash');
+    flash.style.transition = 'none';
+    flash.style.opacity = '0.85';
+    requestAnimationFrame(() => {
+      flash.style.transition = 'opacity 0.35s ease';
+      flash.style.opacity = '0';
+    });
+
+    // Burbuja ¡!
+    const bubble = document.getElementById('alert-bubble');
+    bubble.textContent = '¡!';
+    bubble.style.animation = 'none';
+    void bubble.offsetWidth;
+    bubble.style.animation = 'alertPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards';
+    setTimeout(() => {
+      bubble.style.animation = 'alertOut 0.4s ease forwards';
+    }, 2000);
+
+    playAlertSound();
+    return;
+  }
+
   if (type === 'shake') {
-    // Sólo el shake — no hay loop, es instantáneo
     const g = document.getElementById('game');
     g.classList.remove('shake');
-    void g.offsetWidth; // reflow para reiniciar animación
+    void g.offsetWidth;
     g.classList.add('shake');
     setTimeout(() => g.classList.remove('shake'), 600);
     return;

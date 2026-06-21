@@ -25,7 +25,6 @@
       box-shadow: 0 30px 80px rgba(0,0,0,0.9);
     }
 
-    /* Background */
     #bg {
       position: absolute;
       inset: 0;
@@ -41,7 +40,6 @@
       background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.72));
     }
 
-    /* Sprites */
     .sprite {
       position: absolute;
       bottom: 118px;
@@ -65,18 +63,17 @@
     .sprite.dim    { filter:brightness(0.3) saturate(0.2); }
     #sprite-pablo.dim { filter:brightness(0.3) saturate(0.2); }
 
-    /* Scene image (full-frame illustration) */
     #scene-img {
       position: absolute;
       inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
+      object-position: center;
       z-index: 1;
       transition: opacity 0.5s ease;
     }
     #scene-img.gone { opacity:0; pointer-events:none; }
 
-    /* Dialog */
     #dialog {
       position: absolute;
       bottom: 0; left: 0; right: 0;
@@ -109,7 +106,6 @@
     }
     @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:.7} }
 
-    /* Label */
     #label {
       position: absolute;
       top: 13px; left: 13px;
@@ -123,7 +119,6 @@
       border: 1px solid rgba(255,255,255,0.07);
     }
 
-    /* Progress */
     #prog {
       position: absolute;
       top: 0; left: 0;
@@ -133,7 +128,6 @@
       z-index: 20;
     }
 
-    /* TITLE */
     #title {
       position: absolute; inset: 0;
       background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
@@ -166,7 +160,6 @@
     }
     @keyframes twinkle { 0%,100%{opacity:.1} 50%{opacity:var(--o)} }
 
-    /* END */
     #end {
       position: absolute; inset: 0;
       background: linear-gradient(135deg, #0f0c29, #1a0533, #0d1b2a);
@@ -178,13 +171,55 @@
     @keyframes heartbeat { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
     #end h2 { font-size:36px; color:white; font-weight:200; letter-spacing:4px; margin-bottom:8px; }
     #end p  { color:rgba(255,255,255,0.38); font-size:12px; letter-spacing:1px; }
+
+    /* ── Particles & FX ──────────────────────────────────────── */
+    #particles {
+      position: absolute; inset: 0;
+      pointer-events: none; overflow: hidden; z-index: 5;
+    }
+    .petal {
+      position: absolute; top: -18px;
+      width: 10px; height: 9px;
+      border-radius: 50% 50% 50% 0;
+      animation: petalFall linear forwards;
+    }
+    @keyframes petalFall {
+      0%   { transform: translateX(0) rotate(0deg);   opacity: 0.9; }
+      100% { transform: translateX(var(--dx)) rotate(var(--rot)) translateY(520px); opacity: 0; }
+    }
+    .heart-p {
+      position: absolute;
+      font-size: 20px;
+      animation: heartUp ease-out forwards;
+    }
+    @keyframes heartUp {
+      0%   { transform: translateY(0)     scale(0.4); opacity: 1; }
+      100% { transform: translateY(-120px) scale(1.3); opacity: 0; }
+    }
+    @keyframes gameShake {
+      0%,100% { transform: translate(0,0) rotate(0deg); }
+      12%     { transform: translate(-9px,2px) rotate(-0.5deg); }
+      25%     { transform: translate(9px,-2px) rotate(0.5deg); }
+      37%     { transform: translate(-7px,3px) rotate(-0.3deg); }
+      50%     { transform: translate(7px,-1px) rotate(0.3deg); }
+      62%     { transform: translate(-4px,1px) rotate(-0.2deg); }
+      75%     { transform: translate(4px,-1px) rotate(0.2deg); }
+    }
+    #game.shake { animation: gameShake 0.55s ease; }
+
+    /* ── Track indicator (subtle) ────────────────────────────── */
+    #track-dot {
+      position: absolute; top: 13px; right: 52px;
+      width: 6px; height: 6px; border-radius: 50%;
+      z-index: 20; opacity: 0.4;
+      transition: background 1s ease;
+    }
   </style>
 </head>
 <body>
 <div id="game">
   <div id="prog"></div>
 
-  <!-- TITLE -->
   <div id="title">
     <div class="stars" id="stars"></div>
     <h1>El Primer Día</h1>
@@ -192,7 +227,6 @@
     <button class="btn" onclick="start()">▶ Comenzar</button>
   </div>
 
-  <!-- END -->
   <div id="end">
     <div class="heart">❤️</div>
     <h2>Fin</h2>
@@ -200,9 +234,11 @@
   </div>
 
   <button id="muteBtn" onclick="toggleBGM()" style="position:absolute;top:12px;right:12px;z-index:20;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.1);color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🔊</button>
+  <div id="track-dot"></div>
 
   <div id="bg"></div>
   <img id="scene-img" class="gone" src="" alt="">
+  <div id="particles"></div>
   <div id="label"></div>
 
   <img id="sprite-ruben" class="sprite gone" src="rubenanimefinal.png" alt="Ruben">
@@ -222,12 +258,12 @@ const N = { color:'#64748b', name:'Narrador' };
 const X = { color:'#ef4444', name:'???' };
 const C = { color:'#f97316', name:'Ciclista' };
 
-// bg: css gradient string OR 'img:filename'
-// ruben/pablo: null=gone | 'active' | 'dim'
-// scene: 'img:filename' → muestra imagen a pantalla completa (oculta sprites)
+// bgm:'A'|'B'|'C' → cambia pista en esa escena
+// fx:'petals'|'hearts'|'shake'|null → efecto visual
+// imgPos:'top'|'center' → objectPosition de la imagen
 const scenes = [
 
-  // ── Ruben en casa ───────────────────────────────────────────────────
+  // ── Ruben en casa ────────────────────────────────────────────────────
   { bg:'linear-gradient(135deg,#1a1a2e,#16213e)', label:'🏠 Casa de Ruben — Mañana',
     ruben:'active', pablo:null,
     who:R, text:'Hoy es el día. Por fin voy a conocer a Pablo en persona...' },
@@ -236,7 +272,7 @@ const scenes = [
     ruben:'active', pablo:null,
     who:R, text:'*mira el GPS* Una hora y algo de camino. Merece la pena. Merece la pena. Merece la pena.' },
 
-  // ── Carretera ───────────────────────────────────────────────────────
+  // ── Carretera ────────────────────────────────────────────────────────
   { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 Carretera — En ruta',
     ruben:null, pablo:null,
     who:N, text:'Ruben conduce durante más de una hora. Música puesta. Nervios en el estómago.' },
@@ -245,7 +281,7 @@ const scenes = [
     ruben:null, pablo:null,
     who:R, text:'¿Y si es raro en persona? ..¿Y si el raro soy yo? ..No. Va a ir bien.' },
 
-  // ── Llegada a casa de Pablo ─────────────────────────────────────────
+  // ── Llegada a casa de Pablo ──────────────────────────────────────────
   { bg:'img:llegando casa pablo.png', label:'🏡 Pueblo de Pablo',
     ruben:'dim', pablo:'active',
     who:N, text:'Después de más de una hora... el pueblo de Pablo.' },
@@ -262,7 +298,7 @@ const scenes = [
     ruben:'dim', pablo:'active',
     who:P, text:'¿Qué pasa, te esperabas otra cosa? *sonríe*' },
 
-  // ── Estanco ─────────────────────────────────────────────────────────
+  // ── Estanco ──────────────────────────────────────────────────────────
   { bg:'linear-gradient(135deg,#4a4e69,#9a8c98)', label:'🚬 Estanco',
     ruben:'active', pablo:'active',
     who:N, text:'Primera parada. El ritual sagrado del tabaco.' },
@@ -271,7 +307,7 @@ const scenes = [
     ruben:'dim', pablo:'active',
     who:P, text:'Yo tengo el mío. ¿Tú quieres algo?' },
 
-  // ── Mercadona ───────────────────────────────────────────────────────
+  // ── Mercadona ────────────────────────────────────────────────────────
   { bg:'img:pablo y ruben eligiendo patatas.png', label:'🛒 Mercadona — La gran decisión',
     ruben:null, pablo:null,
     who:N, text:'Segunda parada. El momento más importante del día: elegir las patatas.' },
@@ -288,7 +324,7 @@ const scenes = [
     ruben:'active', pablo:'dim',
     who:R, text:'Discutible. *coge las suyas igualmente* Bebidas y ya nos vamos.' },
 
-  // ── Pablo limpia el coche ───────────────────────────────────────────
+  // ── Pablo limpia el coche ────────────────────────────────────────────
   { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
     ruben:null, pablo:null,
     who:N, text:'Antes de ir al río, una parada inesperada: Pablo decide limpiar el coche de Ruben.' },
@@ -309,7 +345,7 @@ const scenes = [
     ruben:'active', pablo:'dim',
     who:R, text:'¡¡PABLO!!' },
 
-  // ── Coche — Pablo copiloto ──────────────────────────────────────────
+  // ── Coche — Pablo copiloto ───────────────────────────────────────────
   { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En ruta — Pablo de copiloto',
     ruben:'active', pablo:'dim',
     who:N, text:'Pablo sube al coche. Misión: guiar a Ruben por las calles del pueblo.' },
@@ -330,9 +366,9 @@ const scenes = [
     ruben:'active', pablo:'dim',
     who:R, text:'...' },
 
-  // ── Picnic — llegada ────────────────────────────────────────────────
+  // ── Picnic — llegada ─────────────────────────────────────────────────
   { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
-    ruben:null, pablo:null,
+    ruben:null, pablo:null, bgm:'B',
     who:N, text:'Y ahí estaba. El nacimiento del río. El sol entre los árboles, el sonido del agua.' },
 
   { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
@@ -343,18 +379,18 @@ const scenes = [
     ruben:'dim', pablo:'active',
     who:P, text:'Ya te dije que valía la pena venir. Venga, montamos el picnic.' },
 
-  // ── Picnic — se calienta ────────────────────────────────────────────
+  // ── Picnic — se calienta ─────────────────────────────────────────────
   { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🧺 Picnic',
-    ruben:null, pablo:null,
+    ruben:null, pablo:null, fx:'petals',
     who:N, text:'Patatas desplegadas. Bebidas abiertas. El sonido del agua de fondo. La conversación cada vez más cercana...' },
 
   { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🧺 Picnic',
     ruben:null, pablo:null,
     who:N, text:'El ambiente se calienta. La distancia entre ellos se reduce. Todo va bien.' },
 
-  // ── CICLISTAS ───────────────────────────────────────────────────────
+  // ── CICLISTAS ────────────────────────────────────────────────────────
   { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ¡ALERTA!',
-    ruben:null, pablo:null,
+    ruben:null, pablo:null, fx:'shake',
     who:X, text:'*ruido de bicicletas aproximándose*' },
 
   { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ×15 CICLISTAS',
@@ -385,13 +421,13 @@ const scenes = [
     ruben:'active', pablo:'dim',
     who:R, text:'*mira a los lados* Creo que sí.' },
 
-  // ── Round 2 ─────────────────────────────────────────────────────────
+  // ── Round 2 ──────────────────────────────────────────────────────────
   { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Round 2',
-    ruben:null, pablo:null,
+    ruben:null, pablo:null, fx:'petals',
     who:N, text:'Silencio. El momento vuelve. Y con él... el calor también.' },
 
   { bg:'img:ciclista gritando que va al nacimiento del rio.png', label:'🔴 PELIGRO ENTRANTE',
-    ruben:null, pablo:null,
+    ruben:null, pablo:null, fx:'shake',
     who:X, text:'*A lo lejos, con toda la energía del universo* — ¡¡¡AAAAAAA VOY AL NACIMIENTO DEL RÍOOOOOO!!!' },
 
   { bg:'img:ciclista gritando que va al nacimiento del rio.png', label:'🚴 CICLISTA SOLITARIO',
@@ -415,12 +451,12 @@ const scenes = [
     who:R, text:'¡¡QUÉ MALA SUERTE MÁS ÉPICA!!' },
 
   { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
-    ruben:'active', pablo:'active',
+    ruben:'active', pablo:'active', fx:null,
     who:N, text:'Y entre risas, todo lo incómodo desapareció.' },
 
-  // ── Atardecer ───────────────────────────────────────────────────────
+  // ── Atardecer ────────────────────────────────────────────────────────
   { bg:'img:atardecer.jpeg', label:'🌅 Atardecer',
-    ruben:'active', pablo:'active',
+    ruben:'active', pablo:'active', bgm:'C', fx:'hearts',
     who:N, text:'Después, fueron a ver el atardecer. El cielo se tiñó de naranja, rosa y oro.' },
 
   { bg:'img:atardecer.jpeg', label:'🌅 Atardecer',
@@ -435,23 +471,23 @@ const scenes = [
     ruben:'active', pablo:'dim',
     who:R, text:'..Muy bueno.' },
 
-  // ── Pidiendo la cena ────────────────────────────────────────────────
+  // ── Pidiendo la cena ─────────────────────────────────────────────────
   { bg:'img:ruben y pablo pidiendo la cena .png', label:'🥙 Pidiendo la cena',
-    ruben:null, pablo:null,
-    who:N, text:'Para cenar, unas tortas rellenas de jamón york y queso. En el mirador.' },
+    ruben:null, pablo:null, fx:null, imgPos:'top',
+    who:N, text:'Para cenar, en el mirador. Tortas rellenas... o algo así.' },
 
   { bg:'img:ruben y pablo pidiendo la cena .png', label:'🥙 Pidiendo la cena',
-    ruben:'dim', pablo:'active',
+    ruben:'dim', pablo:'active', imgPos:'top',
     who:P, text:'La de jamón york y queso. *al empleado* Gracias.' },
 
   { bg:'img:ruben y pablo pidiendo la cena .png', label:'🥙 Pidiendo la cena',
-    ruben:'active', pablo:'dim',
-    who:R, text:'Para mí igual. *a Pablo* No somos muy creativos.' },
+    ruben:'active', pablo:'dim', imgPos:'top',
+    who:R, text:'Para mí una quesadilla al estilo César. *a Pablo* Algo de variedad no hace daño.' },
 
-  // ── Mirador — cena y música ─────────────────────────────────────────
+  // ── Mirador — cena y música ──────────────────────────────────────────
   { bg:'img:rubenypablocenando.png', label:'🌄 Mirador — Cena',
     ruben:null, pablo:null,
-    who:N, text:'En el mirador, con las tortas en mano y el pueblo iluminado debajo, empezaron a enseñarse música.' },
+    who:N, text:'En el mirador, con la cena en mano y el pueblo iluminado debajo, empezaron a enseñarse música.' },
 
   { bg:'img:rubenypablocenando.png', label:'🎵 Mirador — Música',
     ruben:'active', pablo:'dim',
@@ -463,22 +499,30 @@ const scenes = [
 
   { bg:'img:rubenypablocenando.png', label:'🎵 Mirador — Cantando juntos',
     ruben:null, pablo:null,
-    who:N, text:'Y sin darse cuenta estaban cantando juntos en el mirador. Con media torta en la mano.' },
+    who:N, text:'Y sin darse cuenta estaban cantando juntos en el mirador. Con media cena en la mano.' },
 
-  // ── Brawl Stars ─────────────────────────────────────────────────────
+  // ── Brawl Stars ──────────────────────────────────────────────────────
   { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
     ruben:null, pablo:null,
     who:P, text:'Venga, una partida de Brawl Stars. Sin excusas si pierdes.' },
 
   { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
-    ruben:null, pablo:null,
-    who:R, text:'Ya tengo las excusas preparadas de antes.' },
+    ruben:'active', pablo:'dim',
+    who:R, text:'Espera espera espera... ¿casi tienes 100k trofeos? Wow. No lo sabía.' },
+
+  { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*sin despegar los ojos de la pantalla* ¡Vamos con todooo!' },
+
+  { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
+    ruben:'active', pablo:'dim',
+    who:R, text:'¡Somos el dúo dinámico!' },
 
   { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
     ruben:null, pablo:null,
     who:N, text:'Jugaron. Rieron. El tiempo se olvidó de existir por un rato.' },
 
-  // ── Despedida ───────────────────────────────────────────────────────
+  // ── Despedida ────────────────────────────────────────────────────────
   { bg:'img:despedida.png', label:'🌙 Casa de Pablo — Despedida',
     ruben:null, pablo:null,
     who:R, text:'Bueno... tengo que irme. Una hora de vuelta me espera.' },
@@ -491,7 +535,7 @@ const scenes = [
     ruben:null, pablo:null,
     who:R, text:'Ha sido más que eso. *sonríe* Hasta pronto.' },
 
-  // ── Pablo dice que espera ───────────────────────────────────────────
+  // ── Pablo dice que espera ────────────────────────────────────────────
   { bg:'img:pablo diciendole a ruben que lo espera hasta que llegue a casa.png', label:'📱 Pablo — En casa',
     ruben:null, pablo:null,
     who:P, text:'Oye, escríbeme cuando llegues. Te espero despierto.' },
@@ -504,7 +548,7 @@ const scenes = [
     ruben:null, pablo:null,
     who:P, text:'Que no, que te espero. Conduce tranquilo. ❤️' },
 
-  // ── Ruben volviendo a casa ──────────────────────────────────────────
+  // ── Ruben volviendo a casa ───────────────────────────────────────────
   { bg:'img:ruben volviendo a  casa.png', label:'🚗 De vuelta — Noche',
     ruben:null, pablo:null,
     who:N, text:'Ruben conduce de vuelta bajo la luna. La misma carretera de antes, pero algo ha cambiado.' },
@@ -513,7 +557,7 @@ const scenes = [
     ruben:null, pablo:null,
     who:R, text:'*sonríe solo en el coche* Ha sido un día de los buenos.' },
 
-  // ── Ruben llega a casa ──────────────────────────────────────────────
+  // ── Ruben llega a casa ───────────────────────────────────────────────
   { bg:'img:ruben en la puerta de casa hablando por telefono.png', label:'🏠 Casa de Ruben — Llegada',
     ruben:null, pablo:null,
     who:N, text:'Por fin. Su portal. Una hora y algo de camino después.' },
@@ -522,7 +566,7 @@ const scenes = [
     ruben:null, pablo:null,
     who:R, text:'*abre el chat* Pablo... ¿sigues ahí?' },
 
-  // ── Pablo dormido ───────────────────────────────────────────────────
+  // ── Pablo dormido ────────────────────────────────────────────────────
   { bg:'img:pablo se queda seco esperando.png', label:'😴 Casa de Pablo — Mientras tanto...',
     ruben:null, pablo:null,
     who:N, text:'"Te espero despierto", dijo.' },
@@ -535,7 +579,7 @@ const scenes = [
     ruben:null, pablo:null,
     who:P, text:'*profundamente dormido a los 10 minutos. Con el moco y todo.* 💤' },
 
-  // ── Ruben en cama ───────────────────────────────────────────────────
+  // ── Ruben en cama ────────────────────────────────────────────────────
   { bg:'img:ruben finalmente en casa en la cama con el telefono.png', label:'🛏️ Ruben — Ya en casa',
     ruben:null, pablo:null,
     who:R, text:'*mira el chat. Sin respuesta. Se ríe solo.*' },
@@ -546,7 +590,7 @@ const scenes = [
 
   { bg:'img:ruben finalmente en casa en la cama con el telefono.png', label:'🛏️ Ruben — Ya en casa',
     ruben:null, pablo:null,
-    who:N, text:'Y así acabó el primer día. Con una sonrisa en la cama y un chat sin leer al otro lado.' },
+    who:N, text:'Así fue como dos desconocidos dejaron de serlo. Con una hora de carretera, unas patatas bien elegidas, quince ciclistas de por medio... y muchas ganas de volver a verse.' },
 ];
 
 let idx = 0;
@@ -562,14 +606,24 @@ function render(i) {
   document.getElementById('prog').style.width = ((i / scenes.length) * 100) + '%';
   document.getElementById('label').textContent = s.label;
 
+  // BGM track switch
+  if (s.bgm) switchTrack(s.bgm);
+
+  // Particle FX
+  if ('fx' in s) {
+    clearFx();
+    if (s.fx) startFx(s.fx);
+  }
+
   // Background / scene image
-  const bgEl = document.getElementById('bg');
+  const bgEl    = document.getElementById('bg');
   const sceneImg = document.getElementById('scene-img');
 
   if (s.bg.startsWith('img:')) {
     const file = s.bg.slice(4);
     bgEl.style.background = '#111';
     sceneImg.src = file;
+    sceneImg.style.objectPosition = s.imgPos || 'center';
     sceneImg.classList.remove('gone');
   } else {
     bgEl.style.background = s.bg;
@@ -593,32 +647,44 @@ function setSprite(el, state) {
   else if (state === 'dim') el.classList.add('dim');
 }
 
-
-
-// ─── Typewriter + voces ───────────────────────────────────────────────────────
+// ─── Typewriter + voces Animal Crossing ──────────────────────────────────────
 let twTimer = null;
-let twDone = false;
+let twDone  = false;
 
 const VOICES = {
-  'Ruben':    { freq: 245, type: 'sine',     speed: 28 },
-  'Pablo':    { freq: 370, type: 'sine',     speed: 26 },
-  'Narrador': { freq: 190, type: 'triangle', speed: 22 },
-  '???':      { freq: 140, type: 'sawtooth', speed: 35 },
-  'Ciclista': { freq: 480, type: 'sine',     speed: 30 },
+  'Ruben':    { freq: 260, type: 'sine',     speed: 38 },
+  'Pablo':    { freq: 400, type: 'sine',     speed: 36 },
+  'Narrador': { freq: 175, type: 'triangle', speed: 30 },
+  '???':      { freq: 145, type: 'sawtooth', speed: 40 },
+  'Ciclista': { freq: 510, type: 'sine',     speed: 36 },
 };
 
 function playVoice(freq, type) {
   if (!actx) return;
-  const variation = (Math.random() - 0.5) * 30;
-  const o = actx.createOscillator();
-  const g = actx.createGain();
-  o.connect(g); g.connect(actx.destination);
+  // Variación aleatoria estilo Animal Crossing: ±2 semitonos
+  const cents = (Math.random() - 0.5) * 400;
+  const f0 = freq * Math.pow(2, cents / 1200);
+
+  const o  = actx.createOscillator();
+  const g  = actx.createGain();
+  const bp = actx.createBiquadFilter();
+
+  o.connect(bp); bp.connect(g); g.connect(actx.destination);
+
   o.type = type;
-  o.frequency.value = freq + variation;
-  g.gain.setValueAtTime(0.09, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.055);
-  o.start(actx.currentTime);
-  o.stop(actx.currentTime + 0.06);
+  o.frequency.value = f0;
+
+  // Filtro bandpass centrado: da el timbre nasal de AC
+  bp.type = 'bandpass';
+  bp.frequency.value = f0 * 1.8;
+  bp.Q.value = 4;
+
+  const t = actx.currentTime;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.32, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.052);
+  o.start(t);
+  o.stop(t + 0.06);
 }
 
 function typeText(fullText, who) {
@@ -633,7 +699,7 @@ function typeText(fullText, who) {
     if (i >= fullText.length) { twDone = true; return; }
     el.textContent += fullText[i];
     const ch = fullText[i];
-    if (ch !== ' ' && ch !== '\n' && i % 2 === 0) playVoice(v.freq, v.type);
+    if (ch !== ' ' && ch !== '\n') playVoice(v.freq, v.type);
     i++;
     twTimer = setTimeout(tick, v.speed);
   }
@@ -642,13 +708,11 @@ function typeText(fullText, who) {
 
 function skipOrNext() {
   if (!twDone) {
-    // Completa el texto al instante
     clearTimeout(twTimer);
     twDone = true;
     document.getElementById('text').textContent = scenes[idx].text;
     return;
   }
-  // Ya estaba completo: avanza
   playClick();
   idx++;
   if (idx >= scenes.length) {
@@ -661,14 +725,14 @@ function skipOrNext() {
 // ─── Audio ────────────────────────────────────────────────────────────────────
 let actx = null;
 let bgmActive = false;
-let bgmTimer = null;
+let bgmTimer  = null;
+let currentTrackId = 'A';
 
 function initAudio() {
   if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
   if (actx.state === 'suspended') actx.resume();
 }
 
-// Click sound — soft VN "tick"
 function playClick() {
   initAudio();
   const o = actx.createOscillator();
@@ -683,54 +747,89 @@ function playClick() {
   o.stop(actx.currentTime + 0.08);
 }
 
-// Piano note helper
-function note(freq, t, dur = 1.6, vol = 0.055) {
+function note(freq, t, dur, vol, oscType, filterHz) {
   const o = actx.createOscillator();
   const g = actx.createGain();
   const f = actx.createBiquadFilter();
   o.connect(f); f.connect(g); g.connect(actx.destination);
-  o.type = 'triangle';
-  f.type = 'lowpass'; f.frequency.value = 2200;
+  o.type = oscType || 'triangle';
+  f.type = 'lowpass'; f.frequency.value = filterHz || 2200;
   o.frequency.value = freq;
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol, t + 0.04);
-  g.gain.setValueAtTime(vol, t + 0.1);
+  g.gain.linearRampToValueAtTime(vol, t + 0.05);
+  g.gain.setValueAtTime(vol, t + 0.12);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   o.start(t); o.stop(t + dur + 0.1);
 }
 
-// Melodía anime ambient — escala pentatónica, dos voces
-const MELODY = [
-  [523.25, 1.8], [659.25, 1.2], [587.33, 1.0], [523.25, 0.8],
-  [440.00, 1.6], [392.00, 1.0], [440.00, 0.8], [523.25, 1.2],
-  [659.25, 1.4], [783.99, 1.0], [659.25, 0.8], [587.33, 1.6],
-  [523.25, 1.2], [440.00, 1.0], [392.00, 1.8], [329.63, 2.0],
-];
-const BASS = [261.63, 196.00, 220.00, 261.63, 174.61, 196.00, 220.00, 261.63];
+// ─── 3 pistas BGM ────────────────────────────────────────────────────────────
+const TRACKS = {
+  // A — Aventura/viaje  (Do pentatónico · triángulo · ágil)
+  A: {
+    osc: 'triangle', filter: 2200, step: 0.50, vol: 0.050,
+    melody: [
+      [523.25,1.8],[659.25,1.2],[587.33,1.0],[523.25,0.8],
+      [440.00,1.6],[392.00,1.0],[440.00,0.8],[523.25,1.2],
+      [659.25,1.4],[783.99,1.0],[659.25,0.8],[587.33,1.6],
+      [523.25,1.2],[440.00,1.0],[392.00,1.8],[329.63,2.0],
+    ],
+    bass: [261.63,196.00,220.00,261.63,196.00,220.00,261.63,196.00],
+  },
+  // B — Romance/picnic  (Fa pentatónico · seno · cálido)
+  B: {
+    osc: 'sine', filter: 1800, step: 0.65, vol: 0.045,
+    melody: [
+      [349.23,2.2],[440.00,1.6],[523.25,1.8],[440.00,1.2],
+      [349.23,2.0],[392.00,1.4],[440.00,1.2],[523.25,1.8],
+      [587.33,1.6],[523.25,1.4],[440.00,2.2],[392.00,1.2],
+      [349.23,1.6],[392.00,1.4],[440.00,2.0],[349.23,2.6],
+    ],
+    bass: [174.61,130.81,220.00,174.61,130.81,196.00,220.00,174.61],
+  },
+  // C — Nostalgia/atardecer  (Sol pentatónico · seno · lento y suave)
+  C: {
+    osc: 'sine', filter: 1400, step: 0.80, vol: 0.040,
+    melody: [
+      [392.00,2.6],[493.88,1.8],[587.33,2.2],[493.88,1.6],
+      [392.00,2.4],[440.00,2.0],[392.00,1.8],[329.63,2.2],
+      [293.66,2.0],[329.63,1.6],[392.00,2.2],[493.88,1.8],
+      [587.33,2.6],[493.88,2.2],[440.00,2.4],[392.00,3.2],
+    ],
+    bass: [196.00,146.83,164.81,196.00,146.83,164.81,196.00,220.00],
+  },
+};
+
+const TRACK_COLORS = { A:'#a78bfa', B:'#f472b6', C:'#fb923c' };
+
+function switchTrack(id) {
+  if (currentTrackId === id) return;
+  currentTrackId = id;
+  clearTimeout(bgmTimer);
+  document.getElementById('track-dot').style.background = TRACK_COLORS[id];
+  if (bgmActive) scheduleBGM();
+}
 
 function scheduleBGM() {
   if (!bgmActive) return;
   initAudio();
-  let t = actx.currentTime + 0.1;
-  const step = 0.52;
+  const tr = TRACKS[currentTrackId];
+  let t = actx.currentTime + 0.15;
 
-  // Melodía principal
-  MELODY.forEach(([freq, dur], i) => {
-    note(freq, t + i * step, dur, 0.05);
+  tr.melody.forEach(([freq, dur], i) => {
+    note(freq, t + i * tr.step, dur, tr.vol, tr.osc, tr.filter);
+  });
+  tr.bass.forEach((freq, i) => {
+    note(freq, t + i * tr.step * 2, 2.0, tr.vol * 0.65, tr.osc, tr.filter * 0.7);
   });
 
-  // Bajo suave — una nota cada 2 pasos
-  BASS.forEach((freq, i) => {
-    note(freq, t + i * step * 2, 1.8, 0.03);
-  });
-
-  const loopMs = MELODY.length * step * 1000 + 800;
+  const loopMs = tr.melody.length * tr.step * 1000 + 900;
   bgmTimer = setTimeout(scheduleBGM, loopMs);
 }
 
 function startBGM() {
   if (bgmActive) return;
   bgmActive = true;
+  document.getElementById('track-dot').style.background = TRACK_COLORS[currentTrackId];
   scheduleBGM();
 }
 
@@ -741,7 +840,73 @@ function toggleBGM() {
   if (bgmActive) scheduleBGM();
 }
 
-// Stars
+// ─── Partículas FX ───────────────────────────────────────────────────────────
+const particlesEl = document.getElementById('particles');
+let pfxInterval = null;
+
+function clearFx() {
+  clearInterval(pfxInterval);
+  pfxInterval = null;
+  particlesEl.innerHTML = '';
+  document.getElementById('game').classList.remove('shake');
+}
+
+function startFx(type) {
+  if (type === 'shake') {
+    // Sólo el shake — no hay loop, es instantáneo
+    const g = document.getElementById('game');
+    g.classList.remove('shake');
+    void g.offsetWidth; // reflow para reiniciar animación
+    g.classList.add('shake');
+    setTimeout(() => g.classList.remove('shake'), 600);
+    return;
+  }
+
+  if (type === 'petals') {
+    pfxInterval = setInterval(() => {
+      if (particlesEl.children.length > 45) return;
+      const p = document.createElement('div');
+      p.className = 'petal';
+      const hue = 330 + Math.random() * 30;
+      const sat = 70 + Math.random() * 20;
+      const lit = 80 + Math.random() * 10;
+      p.style.cssText = [
+        `left:${Math.random()*105-2}%`,
+        `animation-duration:${3.5 + Math.random()*3}s`,
+        `animation-delay:${Math.random()*1.5}s`,
+        `background:hsl(${hue},${sat}%,${lit}%)`,
+        `--dx:${(Math.random()-0.5)*80}px`,
+        `--rot:${540 + Math.random()*360}deg`,
+        `transform:rotate(${Math.random()*360}deg)`,
+        `width:${8+Math.random()*6}px`,
+        `height:${7+Math.random()*5}px`,
+        `opacity:${0.7+Math.random()*0.3}`,
+      ].join(';');
+      particlesEl.appendChild(p);
+      setTimeout(() => p.remove(), 7000);
+    }, 180);
+  }
+
+  if (type === 'hearts') {
+    pfxInterval = setInterval(() => {
+      if (particlesEl.children.length > 18) return;
+      const p = document.createElement('div');
+      p.className = 'heart-p';
+      p.textContent = ['❤️','💕','💖','✨','🧡'][Math.floor(Math.random()*5)];
+      p.style.cssText = [
+        `left:${15 + Math.random()*70}%`,
+        `bottom:${100 + Math.random()*80}px`,
+        `font-size:${14+Math.random()*12}px`,
+        `animation-duration:${2.2+Math.random()*1.8}s`,
+        `animation-delay:${Math.random()*1}s`,
+      ].join(';');
+      particlesEl.appendChild(p);
+      setTimeout(() => p.remove(), 4500);
+    }, 280);
+  }
+}
+
+// ─── Estrellas (título) ───────────────────────────────────────────────────────
 (function() {
   const c = document.getElementById('stars');
   for (let i = 0; i < 90; i++) {

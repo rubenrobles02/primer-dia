@@ -384,14 +384,39 @@ const scenes = [
     ruben:'active', pablo:'dim',
     who:R, text:'Discutible. *coge las suyas igualmente* Bebidas y ya nos vamos.' },
 
+  // ── Pablo guia a ruben al lavadero ──────────────────────────────────
+  { bg:'img:pablo guia a ruben.png', label:'🚗 Hacia el lavadero',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Oye, antes de ir al río hay que lavar el coche. Yo te guío, que conozco el sitio.' },
+
+  { bg:'img:pablo guia a ruben.png', label:'🚗 Hacia el lavadero',
+    ruben:'active', pablo:'dim',
+    who:R, text:'*asiente* Tú mandas.' },
+
+  { bg:'img:pablo guia a ruben.png', label:'🚗 Hacia el lavadero',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Recto... recto... ahora gira. GIRA. GIRA AQUÍ. AQUÍ AQUÍ—' },
+
+  { bg:'img:pablo guia a ruben.png', label:'🚗 Hacia el lavadero',
+    ruben:'active', pablo:'dim',
+    who:R, text:'¡¡PABLO!! ¡No me da tiempo si me lo dices cuando ya he pasado!' },
+
+  { bg:'img:pablo guia a ruben.png', label:'🚗 Hacia el lavadero',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*riéndose* Oye, hemos llegado, ¿no? El resultado es lo que importa.' },
+
+  { bg:'img:pablo guia a ruben.png', label:'🚗 Hacia el lavadero',
+    ruben:'active', pablo:'dim',
+    who:R, text:'...' },
+
   // ── Pablo limpia el coche ────────────────────────────────────────────
   { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
     ruben:null, pablo:null,
-    who:N, text:'Antes de ir al río, una parada inesperada: Pablo decide limpiar el coche de Ruben.' },
+    who:N, text:'Y allí estaba el lavadero. Pablo lo tenía todo planeado.' },
 
   { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
     ruben:'dim', pablo:'active',
-    who:P, text:'No podemos ir al picnic con el coche así. Venga, que lo limpiamos.' },
+    who:P, text:'No podemos ir al picnic con el coche así. *coge la manguera*' },
 
   { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
     ruben:'active', pablo:'dim',
@@ -404,27 +429,6 @@ const scenes = [
   { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
     ruben:'active', pablo:'dim',
     who:R, text:'¡¡PABLO!!' },
-
-  // ── Coche — Pablo copiloto ───────────────────────────────────────────
-  { bg:'img:pablo guia a ruben.png', label:'🚗 En ruta — Pablo de copiloto',
-    ruben:'active', pablo:'dim',
-    who:N, text:'Pablo sube al coche. Misión: guiar a Ruben por las calles del pueblo.' },
-
-  { bg:'img:pablo guia a ruben.png', label:'🚗 En ruta',
-    ruben:'dim', pablo:'active',
-    who:P, text:'Recto... recto... recto... ahora gira. GIRA. GIRA AQUÍ. AQUÍ AQUÍ—' },
-
-  { bg:'img:pablo guia a ruben.png', label:'🚗 En ruta',
-    ruben:'active', pablo:'dim',
-    who:R, text:'¡¡PABLO!! ¡No me da tiempo si me lo dices cuando ya he pasado!' },
-
-  { bg:'img:pablo guia a ruben.png', label:'🚗 En ruta',
-    ruben:'dim', pablo:'active',
-    who:P, text:'*riéndose* Oye, hemos llegado, ¿no? El resultado es lo que importa.' },
-
-  { bg:'img:pablo guia a ruben.png', label:'🚗 En ruta',
-    ruben:'active', pablo:'dim',
-    who:R, text:'...' },
 
   // ── Picnic — llegada ─────────────────────────────────────────────────
   { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',

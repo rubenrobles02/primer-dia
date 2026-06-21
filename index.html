@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>El Primer Día ❤️</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    #game {
+      width: 860px;
+      height: 484px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.9);
+    }
+
+    /* Background */
+    #bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transition: opacity 0.6s ease;
+    }
+    #bg::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 60%;
+      background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.72));
+    }
+
+    /* Sprites */
+    .sprite {
+      position: absolute;
+      bottom: 118px;
+      height: 340px;
+      object-fit: cover;
+      object-position: top center;
+      transition: all 0.4s ease;
+      z-index: 2;
+    }
+    #sprite-ruben {
+      left: 40px;
+      transform: scaleX(-1);
+      filter: drop-shadow(-4px 0 24px rgba(167,139,250,0.4));
+    }
+    #sprite-pablo {
+      right: 40px;
+      filter: drop-shadow(4px 0 24px rgba(52,211,153,0.4));
+    }
+    .sprite.gone   { opacity:0; transform:scaleX(-1) translateX(-30px); pointer-events:none; }
+    #sprite-pablo.gone { transform:translateX(30px); }
+    .sprite.dim    { filter:brightness(0.3) saturate(0.2); }
+    #sprite-pablo.dim { filter:brightness(0.3) saturate(0.2); }
+
+    /* Scene image (full-frame illustration) */
+    #scene-img {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      transition: opacity 0.5s ease;
+    }
+    #scene-img.gone { opacity:0; pointer-events:none; }
+
+    /* Dialog */
+    #dialog {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(6,6,18,0.93);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 13px 22px 17px;
+      cursor: pointer;
+      z-index: 10;
+      user-select: none;
+    }
+    #speaker {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    #text {
+      font-size: 15px;
+      color: #e8e8f0;
+      line-height: 1.65;
+      min-height: 50px;
+    }
+    #hint {
+      position: absolute;
+      bottom: 9px; right: 16px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.2);
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:.7} }
+
+    /* Label */
+    #label {
+      position: absolute;
+      top: 13px; left: 13px;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      color: rgba(255,255,255,0.7);
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      z-index: 10;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    /* Progress */
+    #prog {
+      position: absolute;
+      top: 0; left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #a78bfa, #34d399);
+      transition: width 0.4s ease;
+      z-index: 20;
+    }
+
+    /* TITLE */
+    #title {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100; cursor: pointer;
+    }
+    #title h1 {
+      font-size: 50px; font-weight: 200;
+      color: white; letter-spacing: 6px; margin-bottom: 6px;
+    }
+    #title .sub {
+      color: rgba(255,255,255,0.38); font-size: 12px;
+      letter-spacing: 2px; margin-bottom: 48px;
+    }
+    #title .btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.8);
+      padding: 11px 36px; border-radius: 30px;
+      font-size: 13px; cursor: pointer; letter-spacing: 1px;
+      transition: all 0.3s;
+    }
+    #title .btn:hover { background: rgba(255,255,255,0.13); }
+
+    .stars { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+    .star {
+      position:absolute; background:white; border-radius:50%;
+      animation: twinkle var(--d) infinite;
+    }
+    @keyframes twinkle { 0%,100%{opacity:.1} 50%{opacity:var(--o)} }
+
+    /* END */
+    #end {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #0f0c29, #1a0533, #0d1b2a);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    #end .heart { font-size:40px; animation:heartbeat 1.4s infinite; margin-bottom:18px; }
+    @keyframes heartbeat { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+    #end h2 { font-size:36px; color:white; font-weight:200; letter-spacing:4px; margin-bottom:8px; }
+    #end p  { color:rgba(255,255,255,0.38); font-size:12px; letter-spacing:1px; }
+  </style>
+</head>
+<body>
+<div id="game">
+  <div id="prog"></div>
+
+  <!-- TITLE -->
+  <div id="title">
+    <div class="stars" id="stars"></div>
+    <h1>El Primer Día</h1>
+    <p class="sub">Una historia de Ruben &amp; Pablo</p>
+    <button class="btn" onclick="start()">▶ Comenzar</button>
+  </div>
+
+  <!-- END -->
+  <div id="end">
+    <div class="heart">❤️</div>
+    <h2>Fin</h2>
+    <p>Un día que no se olvidará</p>
+  </div>
+
+  <button id="muteBtn" onclick="toggleBGM()" style="position:absolute;top:12px;right:12px;z-index:20;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.1);color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🔊</button>
+
+  <div id="bg"></div>
+  <img id="scene-img" class="gone" src="" alt="">
+  <div id="label"></div>
+
+  <img id="sprite-ruben" class="sprite gone" src="rubenanimefinal.png" alt="Ruben">
+  <img id="sprite-pablo" class="sprite gone" src="pabloanime final.png" alt="Pablo">
+
+  <div id="dialog" onclick="skipOrNext()">
+    <div id="speaker"></div>
+    <div id="text"></div>
+    <div id="hint">▼ clic · espacio · →</div>
+  </div>
+</div>
+
+<script>
+const R = { color:'#a78bfa', name:'Ruben' };
+const P = { color:'#34d399', name:'Pablo' };
+const N = { color:'#64748b', name:'Narrador' };
+const X = { color:'#ef4444', name:'???' };
+const C = { color:'#f97316', name:'Ciclista' };
+
+// bg: css gradient string OR 'img:filename'
+// ruben/pablo: null=gone | 'active' | 'dim'
+// scene: 'img:filename' → muestra imagen a pantalla completa (oculta sprites)
+const scenes = [
+
+  // ── Ruben en casa ───────────────────────────────────────────────────
+  { bg:'linear-gradient(135deg,#1a1a2e,#16213e)', label:'🏠 Casa de Ruben — Mañana',
+    ruben:'active', pablo:null,
+    who:R, text:'Hoy es el día. Por fin voy a conocer a Pablo en persona...' },
+
+  { bg:'linear-gradient(135deg,#1a1a2e,#16213e)', label:'🏠 Casa de Ruben',
+    ruben:'active', pablo:null,
+    who:R, text:'*mira el GPS* Una hora y algo de camino. Merece la pena. Merece la pena. Merece la pena.' },
+
+  // ── Carretera ───────────────────────────────────────────────────────
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 Carretera — En ruta',
+    ruben:null, pablo:null,
+    who:N, text:'Ruben conduce durante más de una hora. Música puesta. Nervios en el estómago.' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 Carretera',
+    ruben:null, pablo:null,
+    who:R, text:'¿Y si es raro en persona? ..¿Y si el raro soy yo? ..No. Va a ir bien.' },
+
+  // ── Llegada a casa de Pablo ─────────────────────────────────────────
+  { bg:'img:llegando casa pablo.png', label:'🏡 Pueblo de Pablo',
+    ruben:'dim', pablo:'active',
+    who:N, text:'Después de más de una hora... el pueblo de Pablo.' },
+
+  { bg:'img:llegando casa pablo.png', label:'🏡 Casa de Pablo — Primera vez',
+    ruben:'dim', pablo:'active',
+    who:P, text:'¡Ya estás aquí! Espera, que cojo las cosas del picnic.' },
+
+  { bg:'img:llegando casa pablo.png', label:'🏡 Casa de Pablo',
+    ruben:'active', pablo:'dim',
+    who:R, text:'*lo ve por primera vez* Hostia. Es más alto de lo que me esperaba.' },
+
+  { bg:'img:llegando casa pablo.png', label:'🏡 Casa de Pablo',
+    ruben:'dim', pablo:'active',
+    who:P, text:'¿Qué pasa, te esperabas otra cosa? *sonríe*' },
+
+  // ── Estanco ─────────────────────────────────────────────────────────
+  { bg:'linear-gradient(135deg,#4a4e69,#9a8c98)', label:'🚬 Estanco',
+    ruben:'active', pablo:'active',
+    who:N, text:'Primera parada. El ritual sagrado del tabaco.' },
+
+  { bg:'linear-gradient(135deg,#4a4e69,#9a8c98)', label:'🚬 Estanco',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Yo tengo el mío. ¿Tú quieres algo?' },
+
+  // ── Mercadona ───────────────────────────────────────────────────────
+  { bg:'img:pablo y ruben eligiendo patatas.png', label:'🛒 Mercadona — La gran decisión',
+    ruben:null, pablo:null,
+    who:N, text:'Segunda parada. El momento más importante del día: elegir las patatas.' },
+
+  { bg:'img:pablo y ruben eligiendo patatas.png', label:'🛒 Mercadona',
+    ruben:'active', pablo:'dim',
+    who:R, text:'Las patatas que eliges definen quién eres como persona. Que sepas.' },
+
+  { bg:'img:pablo y ruben eligiendo patatas.png', label:'🛒 Mercadona',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*coge unas con total convicción* Las mías son objetivamente superiores.' },
+
+  { bg:'img:pablo y ruben eligiendo patatas.png', label:'🛒 Mercadona',
+    ruben:'active', pablo:'dim',
+    who:R, text:'Discutible. *coge las suyas igualmente* Bebidas y ya nos vamos.' },
+
+  // ── Pablo limpia el coche ───────────────────────────────────────────
+  { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
+    ruben:null, pablo:null,
+    who:N, text:'Antes de ir al río, una parada inesperada: Pablo decide limpiar el coche de Ruben.' },
+
+  { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
+    ruben:'dim', pablo:'active',
+    who:P, text:'No podemos ir al picnic con el coche así. Venga, que lo limpiamos.' },
+
+  { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
+    ruben:'active', pablo:'dim',
+    who:R, text:'¿Estás limpiando mi coche? ..Nadie había hecho eso antes.' },
+
+  { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*con la manguera* Pues ya era hora. *le salpica sin querer*' },
+
+  { bg:'img:pablo le limpia el coche a ruben.png', label:'🚿 Lavadero de coches',
+    ruben:'active', pablo:'dim',
+    who:R, text:'¡¡PABLO!!' },
+
+  // ── Coche — Pablo copiloto ──────────────────────────────────────────
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En ruta — Pablo de copiloto',
+    ruben:'active', pablo:'dim',
+    who:N, text:'Pablo sube al coche. Misión: guiar a Ruben por las calles del pueblo.' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En ruta',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Recto... recto... recto... ahora gira. GIRA. GIRA AQUÍ. AQUÍ AQUÍ—' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En ruta',
+    ruben:'active', pablo:'dim',
+    who:R, text:'¡¡PABLO!! ¡No me da tiempo si me lo dices cuando ya he pasado!' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En ruta',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*riéndose* Oye, hemos llegado, ¿no? El resultado es lo que importa.' },
+
+  { bg:'img:camino por el cual va ruben para casa de pablo.png', label:'🚗 En ruta',
+    ruben:'active', pablo:'dim',
+    who:R, text:'...' },
+
+  // ── Picnic — llegada ────────────────────────────────────────────────
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
+    ruben:null, pablo:null,
+    who:N, text:'Y ahí estaba. El nacimiento del río. El sol entre los árboles, el sonido del agua.' },
+
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
+    ruben:'active', pablo:'dim',
+    who:R, text:'Joder... es precioso.' },
+
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Ya te dije que valía la pena venir. Venga, montamos el picnic.' },
+
+  // ── Picnic — se calienta ────────────────────────────────────────────
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🧺 Picnic',
+    ruben:null, pablo:null,
+    who:N, text:'Patatas desplegadas. Bebidas abiertas. El sonido del agua de fondo. La conversación cada vez más cercana...' },
+
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🧺 Picnic',
+    ruben:null, pablo:null,
+    who:N, text:'El ambiente se calienta. La distancia entre ellos se reduce. Todo va bien.' },
+
+  // ── CICLISTAS ───────────────────────────────────────────────────────
+  { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ¡ALERTA!',
+    ruben:null, pablo:null,
+    who:X, text:'*ruido de bicicletas aproximándose*' },
+
+  { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ×15 CICLISTAS',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Ruben. Ruben. RUBEN. Que vienen ciclistas.' },
+
+  { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ×15 CICLISTAS',
+    ruben:'active', pablo:'dim',
+    who:R, text:'*se separa a velocidad de la luz y coge las patatas* Mm qué bonito el campo, sí señor.' },
+
+  { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ×15 CICLISTAS',
+    ruben:null, pablo:null,
+    who:N, text:'15 ciclistas pasan uno a uno. Eternamente. Los dos mirando el río con cara de no haber roto un plato en su vida.' },
+
+  { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ×15 CICLISTAS',
+    ruben:null, pablo:null,
+    who:N, text:'...' },
+
+  { bg:'img:sorprendidos por ciclistas.png', label:'🚴 ×15 CICLISTAS',
+    ruben:null, pablo:null,
+    who:N, text:'.....................' },
+
+  { bg:'img:sorprendidos por ciclistas.png', label:'✅ Ya se fueron',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*susurrando* ¿Ya?' },
+
+  { bg:'img:sorprendidos por ciclistas.png', label:'✅ Ya se fueron',
+    ruben:'active', pablo:'dim',
+    who:R, text:'*mira a los lados* Creo que sí.' },
+
+  // ── Round 2 ─────────────────────────────────────────────────────────
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Round 2',
+    ruben:null, pablo:null,
+    who:N, text:'Silencio. El momento vuelve. Y con él... el calor también.' },
+
+  { bg:'img:ciclista gritando que va al nacimiento del rio.png', label:'🔴 PELIGRO ENTRANTE',
+    ruben:null, pablo:null,
+    who:X, text:'*A lo lejos, con toda la energía del universo* — ¡¡¡AAAAAAA VOY AL NACIMIENTO DEL RÍOOOOOO!!!' },
+
+  { bg:'img:ciclista gritando que va al nacimiento del rio.png', label:'🚴 CICLISTA SOLITARIO',
+    ruben:'active', pablo:'dim',
+    who:R, text:'*se separa por segunda vez a velocidad supersónica*' },
+
+  { bg:'img:ciclista diciendo buenas.png', label:'🚴 CICLISTA SOLITARIO',
+    ruben:null, pablo:null,
+    who:C, text:'Buenas. 👋' },
+
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
+    ruben:'active', pablo:'active',
+    who:N, text:'...' },
+
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
+    ruben:'dim', pablo:'active',
+    who:P, text:'*estalla de risa* ¡RUBEN!' },
+
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
+    ruben:'active', pablo:'dim',
+    who:R, text:'¡¡QUÉ MALA SUERTE MÁS ÉPICA!!' },
+
+  { bg:'img:ruben y pablo antes de ser sorpendidos por ciclistas.png', label:'🌊 Nacimiento del río',
+    ruben:'active', pablo:'active',
+    who:N, text:'Y entre risas, todo lo incómodo desapareció.' },
+
+  // ── Atardecer ───────────────────────────────────────────────────────
+  { bg:'linear-gradient(135deg,#f83600,#f9d423)', label:'🌅 Atardecer',
+    ruben:'active', pablo:'active',
+    who:N, text:'Después, fueron a ver el atardecer. El cielo se tiñó de naranja, rosa y oro.' },
+
+  { bg:'linear-gradient(135deg,#f83600,#f9d423)', label:'🌅 Atardecer',
+    ruben:'active', pablo:'dim',
+    who:R, text:'Oye... esto ha sido un día bastante bueno.' },
+
+  { bg:'linear-gradient(135deg,#f83600,#f9d423)', label:'🌅 Atardecer',
+    ruben:'dim', pablo:'active',
+    who:P, text:'¿Solo bastante bueno? *levanta una ceja*' },
+
+  { bg:'linear-gradient(135deg,#f83600,#f9d423)', label:'🌅 Atardecer',
+    ruben:'active', pablo:'dim',
+    who:R, text:'..Muy bueno.' },
+
+  // ── Pidiendo la cena ────────────────────────────────────────────────
+  { bg:'img:ruben y pablo pidiendo la cena .png', label:'🥙 Pidiendo la cena',
+    ruben:null, pablo:null,
+    who:N, text:'Para cenar, unas tortas rellenas de jamón york y queso. En el mirador.' },
+
+  { bg:'img:ruben y pablo pidiendo la cena .png', label:'🥙 Pidiendo la cena',
+    ruben:'dim', pablo:'active',
+    who:P, text:'La de jamón york y queso. *al empleado* Gracias.' },
+
+  { bg:'img:ruben y pablo pidiendo la cena .png', label:'🥙 Pidiendo la cena',
+    ruben:'active', pablo:'dim',
+    who:R, text:'Para mí igual. *a Pablo* No somos muy creativos.' },
+
+  // ── Mirador — cena y música ─────────────────────────────────────────
+  { bg:'img:rubenypablocenando.png', label:'🌄 Mirador — Cena',
+    ruben:null, pablo:null,
+    who:N, text:'En el mirador, con las tortas en mano y el pueblo iluminado debajo, empezaron a enseñarse música.' },
+
+  { bg:'img:rubenypablocenando.png', label:'🎵 Mirador — Música',
+    ruben:'active', pablo:'dim',
+    who:R, text:'Escucha esta. *pone canción* Esta es de mis favoritas.' },
+
+  { bg:'img:rubenypablocenando.png', label:'🎵 Mirador — Música',
+    ruben:'dim', pablo:'active',
+    who:P, text:'Espera, esta yo la conozco. *empieza a cantarla*' },
+
+  { bg:'img:rubenypablocenando.png', label:'🎵 Mirador — Cantando juntos',
+    ruben:null, pablo:null,
+    who:N, text:'Y sin darse cuenta estaban cantando juntos en el mirador. Con media torta en la mano.' },
+
+  // ── Brawl Stars ─────────────────────────────────────────────────────
+  { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
+    ruben:null, pablo:null,
+    who:P, text:'Venga, una partida de Brawl Stars. Sin excusas si pierdes.' },
+
+  { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
+    ruben:null, pablo:null,
+    who:R, text:'Ya tengo las excusas preparadas de antes.' },
+
+  { bg:'img:los dos jugando bralws antes de que ruben se vaya.png', label:'🎮 Brawl Stars',
+    ruben:null, pablo:null,
+    who:N, text:'Jugaron. Rieron. El tiempo se olvidó de existir por un rato.' },
+
+  // ── Despedida ───────────────────────────────────────────────────────
+  { bg:'img:despedida.png', label:'🌙 Casa de Pablo — Despedida',
+    ruben:null, pablo:null,
+    who:R, text:'Bueno... tengo que irme. Una hora de vuelta me espera.' },
+
+  { bg:'img:despedida.png', label:'🌙 Despedida',
+    ruben:null, pablo:null,
+    who:P, text:'Ha sido un buen día. *pausa* Conduce con cuidado.' },
+
+  { bg:'img:despedida.png', label:'🌙 Despedida',
+    ruben:null, pablo:null,
+    who:R, text:'Ha sido más que eso. *sonríe* Hasta pronto.' },
+
+  // ── Pablo dice que espera ───────────────────────────────────────────
+  { bg:'img:pablo diciendole a ruben que lo espera hasta que llegue a casa.png', label:'📱 Pablo — En casa',
+    ruben:null, pablo:null,
+    who:P, text:'Oye, escríbeme cuando llegues. Te espero despierto.' },
+
+  { bg:'img:pablo diciendole a ruben que lo espera hasta que llegue a casa.png', label:'📱 Pablo — En casa',
+    ruben:null, pablo:null,
+    who:R, text:'Que no hace falta, que es tarde...' },
+
+  { bg:'img:pablo diciendole a ruben que lo espera hasta que llegue a casa.png', label:'📱 Pablo — En casa',
+    ruben:null, pablo:null,
+    who:P, text:'Que no, que te espero. Conduce tranquilo. ❤️' },
+
+  // ── Ruben volviendo a casa ──────────────────────────────────────────
+  { bg:'img:ruben volviendo a  casa.png', label:'🚗 De vuelta — Noche',
+    ruben:null, pablo:null,
+    who:N, text:'Ruben conduce de vuelta bajo la luna. La misma carretera de antes, pero algo ha cambiado.' },
+
+  { bg:'img:ruben volviendo a  casa.png', label:'🚗 De vuelta',
+    ruben:null, pablo:null,
+    who:R, text:'*sonríe solo en el coche* Ha sido un día de los buenos.' },
+
+  // ── Ruben llega a casa ──────────────────────────────────────────────
+  { bg:'img:ruben en la puerta de casa hablando por telefono.png', label:'🏠 Casa de Ruben — Llegada',
+    ruben:null, pablo:null,
+    who:N, text:'Por fin. Su portal. Una hora y algo de camino después.' },
+
+  { bg:'img:ruben en la puerta de casa hablando por telefono.png', label:'🏠 Casa de Ruben',
+    ruben:null, pablo:null,
+    who:R, text:'*abre el chat* Pablo... ¿sigues ahí?' },
+
+  // ── Pablo dormido ───────────────────────────────────────────────────
+  { bg:'img:pablo se queda seco esperando.png', label:'😴 Casa de Pablo — Mientras tanto...',
+    ruben:null, pablo:null,
+    who:N, text:'"Te espero despierto", dijo.' },
+
+  { bg:'img:pablo se queda seco esperando.png', label:'😴 Casa de Pablo',
+    ruben:null, pablo:null,
+    who:N, text:'...' },
+
+  { bg:'img:juan pablo dormido seco en plan gracioso anime con el moco salido jajaj.png', label:'😴 zzzzzz',
+    ruben:null, pablo:null,
+    who:P, text:'*profundamente dormido a los 10 minutos. Con el moco y todo.* 💤' },
+
+  // ── Ruben en cama ───────────────────────────────────────────────────
+  { bg:'img:ruben finalmente en casa en la cama con el telefono.png', label:'🛏️ Ruben — Ya en casa',
+    ruben:null, pablo:null,
+    who:R, text:'*mira el chat. Sin respuesta. Se ríe solo.*' },
+
+  { bg:'img:ruben finalmente en casa en la cama con el telefono.png', label:'🛏️ Ruben — Ya en casa',
+    ruben:null, pablo:null,
+    who:R, text:'Qué mentiroso. *sonríe mirando el móvil* Buenas noches, Pablo.' },
+
+  { bg:'img:ruben finalmente en casa en la cama con el telefono.png', label:'🛏️ Ruben — Ya en casa',
+    ruben:null, pablo:null,
+    who:N, text:'Y así acabó el primer día. Con una sonrisa en la cama y un chat sin leer al otro lado.' },
+];
+
+let idx = 0;
+
+function start() {
+  document.getElementById('title').style.display = 'none';
+  startBGM();
+  render(0);
+}
+
+function render(i) {
+  const s = scenes[i];
+  document.getElementById('prog').style.width = ((i / scenes.length) * 100) + '%';
+  document.getElementById('label').textContent = s.label;
+
+  // Background / scene image
+  const bgEl = document.getElementById('bg');
+  const sceneImg = document.getElementById('scene-img');
+
+  if (s.bg.startsWith('img:')) {
+    const file = s.bg.slice(4);
+    bgEl.style.background = '#111';
+    sceneImg.src = file;
+    sceneImg.classList.remove('gone');
+  } else {
+    bgEl.style.background = s.bg;
+    sceneImg.classList.add('gone');
+  }
+
+  // Sprites
+  setSprite(document.getElementById('sprite-ruben'), s.ruben);
+  setSprite(document.getElementById('sprite-pablo'), s.pablo);
+
+  // Dialog
+  const sp = document.getElementById('speaker');
+  sp.textContent = s.who.name;
+  sp.style.color = s.who.color;
+  typeText(s.text, s.who);
+}
+
+function setSprite(el, state) {
+  el.classList.remove('gone', 'dim');
+  if (!state) el.classList.add('gone');
+  else if (state === 'dim') el.classList.add('dim');
+}
+
+
+
+// ─── Typewriter + voces ───────────────────────────────────────────────────────
+let twTimer = null;
+let twDone = false;
+
+const VOICES = {
+  'Ruben':    { freq: 245, type: 'sine',     speed: 28 },
+  'Pablo':    { freq: 370, type: 'sine',     speed: 26 },
+  'Narrador': { freq: 190, type: 'triangle', speed: 22 },
+  '???':      { freq: 140, type: 'sawtooth', speed: 35 },
+  'Ciclista': { freq: 480, type: 'sine',     speed: 30 },
+};
+
+function playVoice(freq, type) {
+  if (!actx) return;
+  const variation = (Math.random() - 0.5) * 30;
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.connect(g); g.connect(actx.destination);
+  o.type = type;
+  o.frequency.value = freq + variation;
+  g.gain.setValueAtTime(0.09, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.055);
+  o.start(actx.currentTime);
+  o.stop(actx.currentTime + 0.06);
+}
+
+function typeText(fullText, who) {
+  clearTimeout(twTimer);
+  twDone = false;
+  const el = document.getElementById('text');
+  el.textContent = '';
+  const v = VOICES[who.name] || VOICES['Narrador'];
+  let i = 0;
+
+  function tick() {
+    if (i >= fullText.length) { twDone = true; return; }
+    el.textContent += fullText[i];
+    const ch = fullText[i];
+    if (ch !== ' ' && ch !== '\n' && i % 2 === 0) playVoice(v.freq, v.type);
+    i++;
+    twTimer = setTimeout(tick, v.speed);
+  }
+  tick();
+}
+
+function skipOrNext() {
+  if (!twDone) {
+    // Completa el texto al instante
+    clearTimeout(twTimer);
+    twDone = true;
+    document.getElementById('text').textContent = scenes[idx].text;
+    return;
+  }
+  // Ya estaba completo: avanza
+  playClick();
+  idx++;
+  if (idx >= scenes.length) {
+    document.getElementById('end').style.display = 'flex';
+  } else {
+    render(idx);
+  }
+}
+
+// ─── Audio ────────────────────────────────────────────────────────────────────
+let actx = null;
+let bgmActive = false;
+let bgmTimer = null;
+
+function initAudio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+}
+
+// Click sound — soft VN "tick"
+function playClick() {
+  initAudio();
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.connect(g); g.connect(actx.destination);
+  o.type = 'sine';
+  o.frequency.setValueAtTime(1100, actx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(500, actx.currentTime + 0.07);
+  g.gain.setValueAtTime(0.18, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.07);
+  o.start(actx.currentTime);
+  o.stop(actx.currentTime + 0.08);
+}
+
+// Piano note helper
+function note(freq, t, dur = 1.6, vol = 0.055) {
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  const f = actx.createBiquadFilter();
+  o.connect(f); f.connect(g); g.connect(actx.destination);
+  o.type = 'triangle';
+  f.type = 'lowpass'; f.frequency.value = 2200;
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.04);
+  g.gain.setValueAtTime(vol, t + 0.1);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.start(t); o.stop(t + dur + 0.1);
+}
+
+// Melodía anime ambient — escala pentatónica, dos voces
+const MELODY = [
+  [523.25, 1.8], [659.25, 1.2], [587.33, 1.0], [523.25, 0.8],
+  [440.00, 1.6], [392.00, 1.0], [440.00, 0.8], [523.25, 1.2],
+  [659.25, 1.4], [783.99, 1.0], [659.25, 0.8], [587.33, 1.6],
+  [523.25, 1.2], [440.00, 1.0], [392.00, 1.8], [329.63, 2.0],
+];
+const BASS = [261.63, 196.00, 220.00, 261.63, 174.61, 196.00, 220.00, 261.63];
+
+function scheduleBGM() {
+  if (!bgmActive) return;
+  initAudio();
+  let t = actx.currentTime + 0.1;
+  const step = 0.52;
+
+  // Melodía principal
+  MELODY.forEach(([freq, dur], i) => {
+    note(freq, t + i * step, dur, 0.05);
+  });
+
+  // Bajo suave — una nota cada 2 pasos
+  BASS.forEach((freq, i) => {
+    note(freq, t + i * step * 2, 1.8, 0.03);
+  });
+
+  const loopMs = MELODY.length * step * 1000 + 800;
+  bgmTimer = setTimeout(scheduleBGM, loopMs);
+}
+
+function startBGM() {
+  if (bgmActive) return;
+  bgmActive = true;
+  scheduleBGM();
+}
+
+function toggleBGM() {
+  bgmActive = !bgmActive;
+  clearTimeout(bgmTimer);
+  document.getElementById('muteBtn').textContent = bgmActive ? '🔊' : '🔇';
+  if (bgmActive) scheduleBGM();
+}
+
+// Stars
+(function() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 90; i++) {
+    const s = document.createElement('div');
+    const size = Math.random() * 2.5 + 0.5;
+    s.className = 'star';
+    s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${2+Math.random()*5}s;--o:${0.3+Math.random()*0.7}`;
+    c.appendChild(s);
+  }
+})();
+
+document.addEventListener('keydown', e => {
+  if (['Space','ArrowRight','Enter'].includes(e.code)) {
+    if (document.getElementById('title').style.display !== 'none') return;
+    e.preventDefault();
+    skipOrNext();
+  }
+});
+</script>
+</body>
+</html>
